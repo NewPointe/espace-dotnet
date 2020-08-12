@@ -5,7 +5,7 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  buildConfiguration: 'Release'
+  BuildConfiguration: 'Release'
 
 steps:
 
@@ -13,22 +13,33 @@ steps:
   inputs:
     command: 'restore'
     feedsToUse: 'select'
+  displayName: 'dotnet restore'
 
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
     projects: '*.sln'
-    arguments: '--configuration $(buildConfiguration)'
-  displayName: 'dotnet build $(buildConfiguration)'
+    arguments: '--configuration $(BuildConfiguration)'
+  displayName: 'dotnet build $(BuildConfiguration)'
 
 - task: DotNetCoreCLI@2
   inputs:
-    command: publish
-    publishWebProjects: True
-    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-    zipAfterPublish: True
+    command: 'pack'
+    packagesToPack: '**/*.csproj'
+    nobuild: true
+    versioningScheme: 'byPrereleaseNumber'
+    majorVersion: '1'
+    minorVersion: '0'
+    patchVersion: '0'
+  displayName: 'dotnet pack'
 
-- task: PublishBuildArtifacts@1
+- task: NuGetAuthenticate@0
+  displayName: 'NuGet Authenticate'
+
+- task: NuGetCommand@2
   inputs:
-    pathtoPublish: '$(Build.ArtifactStagingDirectory)' 
-    artifactName: 'myWebsiteName'
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '0dc5dace-5ca3-4a64-ae55-cf469baa0b85'
+    allowPackageConflicts: true
